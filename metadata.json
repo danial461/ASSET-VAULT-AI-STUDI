@@ -1,0 +1,13 @@
+{
+  "name": "AssetVault AI",
+  "description": "A high-utility Digital Twin creator for physical assets. Features AI-powered magic scanning, warranty tracking, and insurance-ready reporting with an Anti-Gravity aesthetic.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "AI Vision",
+    "Insurance Reporting",
+    "Asset Management"
+  ]
+}

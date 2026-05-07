@@ -1,0 +1,109 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Primitive Definitions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'isPro', 'createdAt'])
+        && data.uid == request.auth.uid
+        && data.email is string
+        && data.isPro is bool;
+    }
+
+    function isValidAsset(data) {
+      return data.keys().hasAll(['userId', 'name', 'category', 'createdAt'])
+        && data.userId == request.auth.uid
+        && data.name is string && data.name.size() <= 200
+        && data.category is string
+        && (data.get('purchasePrice', 0) is number)
+        && (data.get('marketValue', 0) is number);
+    }
+
+    function isValidLending(data) {
+      return data.keys().hasAll(['userId', 'assetId', 'borrowerName', 'lentDate', 'status'])
+        && data.userId == request.auth.uid
+        && data.assetId is string
+        && data.borrowerName is string
+        && data.status in ['active', 'returned'];
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['userId', 'role', 'content', 'createdAt'])
+        && data.userId == request.auth.uid
+        && data.role in ['user', 'model']
+        && data.content is string;
+    }
+
+    // test collection for connectivity check
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // 3. Collection Rules
+    
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) 
+        && incoming().createdAt == existing().createdAt
+        && (incoming().diff(existing()).affectedKeys().hasOnly(['isPro']))
+        && incoming().isPro is bool;
+
+      // User Chat History
+      match /chat/{msgId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidChat(incoming());
+      }
+    }
+
+    // Assets Collection
+    match /assets/{assetId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidAsset(incoming()) && isValidId(assetId) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && isValidAsset(incoming())
+        && (incoming().diff(existing()).affectedKeys().hasAny(['name', 'category', 'estimatedBrand', 'purchasePrice', 'purchaseDate', 'warrantyExpiry', 'imageUrl', 'receiptUrl', 'serialNumber', 'manualUrl', 'updatedAt', 'marketValue', 'depreciationRate', 'lastValuationDate', 'lendingStatus']))
+        && incoming().updatedAt == request.time;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Lending Collection
+    match /lending/{recordId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidLending(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && existing().userId == request.auth.uid
+        && (incoming().diff(existing()).affectedKeys().hasAny(['status', 'returnDate', 'updatedAt']));
+    }
+  }
+}

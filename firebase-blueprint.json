@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Information about the application user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "isPro": { "type": "boolean" },
+        "reminderDaysBefore": { "type": "integer" },
+        "notificationsEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "isPro"]
+    },
+    "Asset": {
+      "title": "Physical Asset",
+      "description": "A digital twin of a physical asset",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "estimatedBrand": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "purchaseDate": { "type": "string", "format": "date-time" },
+        "marketValue": { "type": "number" },
+        "depreciationRate": { "type": "number" },
+        "lastValuationDate": { "type": "string", "format": "date-time" },
+        "warrantyExpiry": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string" },
+        "receiptUrl": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "manualUrl": { "type": "string" },
+        "lendingStatus": {
+          "type": "object",
+          "properties": {
+            "isLent": { "type": "boolean" },
+            "borrowerName": { "type": "string" },
+            "dueDate": { "type": "string", "format": "date-time" },
+            "lentDate": { "type": "string", "format": "date-time" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "category", "createdAt"]
+    },
+    "LendingRecord": {
+      "title": "Lending Record",
+      "description": "History of lending an asset to others",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "assetId": { "type": "string" },
+        "userId": { "type": "string" },
+        "borrowerName": { "type": "string" },
+        "lentDate": { "type": "string", "format": "date-time" },
+        "returnDate": { "type": "string", "format": "date-time" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "returned"] }
+      },
+      "required": ["assetId", "userId", "borrowerName", "lentDate", "status"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A message in the AI chat history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and subscription status"
+    },
+    "/assets/{assetId}": {
+      "schema": "Asset",
+      "description": "The digital vault of assets"
+    },
+    "/lending/{recordId}": {
+      "schema": "LendingRecord",
+      "description": "Global lending history"
+    },
+    "/users/{userId}/chat": {
+      "schema": "ChatMessage",
+      "description": "User specific chat history with the vault assistant"
+    }
+  }
+}
